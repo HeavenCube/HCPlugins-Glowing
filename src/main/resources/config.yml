@@ -1,0 +1,48 @@
+## Chaque clé sous "glowings" génère automatiquement sa permission :
+## hcplugins.glowing.cosmetic.<id>
+## Les identifiants acceptent uniquement les minuscules, chiffres, tirets et underscores.
+## Les motifs non possédés restent visibles avec leur bouton Paper sans action.
+##
+## "profile" référence un profil graphique défini dans HCResourcePack. Les couleurs,
+## gradients et animations sont calculés côté GPU ; le serveur ne change aucune
+## couleur à chaque tick. Les couleurs HEX restent autorisées dans MiniMessage.
+##
+## Compatibilité TAB : ajoutez `%hcextra_glow_color%` à la toute fin de chaque
+## tagprefix concerné dans plugins/TAB/groups.yml, puis définissez ce placeholder
+## à 1000 ms dans plugins/TAB/config.yml > placeholder-refresh-intervals. TAB fournit
+## alors la couleur de team utilisée comme carrier. Sans cette intégration, le glow
+## reste blanc et HCResourcePack ne peut pas identifier le profil du joueur.
+
+messages:
+  players-only: "<red>Cette commande doit être exécutée par un joueur.</red>"
+  no-permission: "<red>Vous n'avez pas la permission d'effectuer cette action.</red>"
+  usage: "<red>Syntaxe : <white>/hcplugins glowing</white><gray> ou </gray><white>/hcplugins glowing reload</white></red>"
+  reload-success: "<green>La configuration des cosmétiques de glow a été rechargée.</green>"
+  reload-failure: "<red>Impossible de recharger la configuration. Consultez la console.</red>"
+  selection-saved: "<green>Votre cosmétique de glow a été équipé et sauvegardé.</green>"
+  selection-disabled: "<gray>Votre cosmétique de glow a été désactivé.</gray>"
+  selection-invalidated: "<yellow>Votre cosmétique de glow a été retiré car il n'existe plus ou que vous ne possédez plus sa permission.</yellow>"
+  save-failure: "<red>Impossible de sauvegarder votre choix. Consultez la console.</red>"
+
+dialog:
+  title: "<gradient:#7CFC00:#A855F7><bold>Cosmétiques de glow</bold></gradient>"
+  description: "<gray>Choisissez un profil de surbrillance visible globalement.</gray>"
+  selected-suffix: "<color:#22C55E><bold>✓ Équipé</bold></color>"
+  disable-button-name: "<color:#F87171>Désactiver le glow</color>"
+  disable-tooltip: "<gray>Retire votre cosmétique de glow actuel.</gray>"
+  close-button-name: "<gray>Fermer</gray>"
+  close-tooltip: "<gray>Fermer ce dialogue.</gray>"
+
+glowings:
+  heaven:
+    profile: heaven-gradient
+    button-name: "<gradient:#38BDF8:#A855F7><bold>Heaven</bold></gradient>"
+    tooltip: "<gray>Gradient HeavenCube animé par le resource pack.</gray>"
+  rainbow:
+    profile: rainbow
+    button-name: "<rainbow><bold>Arc-en-ciel</bold></rainbow>"
+    tooltip: "<gray>Cycle de teinte calculé côté GPU.</gray>"
+  pink:
+    profile: pink-static
+    button-name: "<color:#FF5CAC><bold>Rose</bold></color>"
+    tooltip: "<gray>Surbrillance rose statique.</gray>"

@@ -1,0 +1,20 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    uses: HeavenCube/HCPlugins-actions/.github/workflows/build.yml@main
+    with:
+      project-name: HCGlowing
+      artifact-path: build/libs/HCGlowing-*.jar
+      core-source: true
+      source-repositories: HeavenCube/HCPlugins-PlaceholdersExtra
+    secrets: inherit
