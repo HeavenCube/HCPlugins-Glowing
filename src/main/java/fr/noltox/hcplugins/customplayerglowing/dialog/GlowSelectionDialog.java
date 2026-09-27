@@ -1,5 +1,6 @@
 package fr.noltox.hcplugins.customplayerglowing.dialog;
 
+import fr.noltox.hcplugins.core.api.HCPluginsCore;
 import fr.noltox.hcplugins.customplayerglowing.config.GlowConfiguration;
 import fr.noltox.hcplugins.customplayerglowing.config.GlowConfiguration.GlowPattern;
 import fr.noltox.hcplugins.customplayerglowing.service.GlowEngine;
@@ -121,7 +122,7 @@ public final class GlowSelectionDialog {
                 player.sendMessage(configuration.messages().selectionSaved());
                 player.closeDialog();
             }
-            case NOT_ALLOWED -> player.sendMessage(configuration.messages().noPermission());
+            case NOT_ALLOWED -> player.sendMessage(HCPluginsCore.translations(plugin).noPermission());
             case SAVE_FAILED -> player.sendMessage(configuration.messages().saveFailure());
         }
     }

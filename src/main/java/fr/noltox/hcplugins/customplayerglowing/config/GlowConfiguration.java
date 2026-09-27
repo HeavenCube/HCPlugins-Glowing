@@ -54,11 +54,7 @@ public record GlowConfiguration(Map<String, GlowPattern> glowings, Messages mess
         }
 
         Messages messages = new Messages(
-                component(configuration, "messages.players-only"),
-                component(configuration, "messages.no-permission"),
                 component(configuration, "messages.usage"),
-                component(configuration, "messages.reload-success"),
-                component(configuration, "messages.reload-failure"),
                 component(configuration, "messages.selection-saved"),
                 component(configuration, "messages.selection-disabled"),
                 component(configuration, "messages.selection-invalidated"),
@@ -111,11 +107,7 @@ public record GlowConfiguration(Map<String, GlowPattern> glowings, Messages mess
     }
 
     public record Messages(
-            Component playersOnly,
-            Component noPermission,
             Component usage,
-            Component reloadSuccess,
-            Component reloadFailure,
             Component selectionSaved,
             Component selectionDisabled,
             Component selectionInvalidated,

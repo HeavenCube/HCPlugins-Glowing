@@ -1,11 +1,13 @@
 package fr.noltox.hcplugins.customplayerglowing.command;
 
 import fr.noltox.hcplugins.core.api.command.CoreCommand;
+import fr.noltox.hcplugins.core.api.message.CoreTranslations;
 import fr.noltox.hcplugins.customplayerglowing.config.GlowConfiguration;
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
 import java.util.Collection;
 import java.util.List;
@@ -22,12 +24,18 @@ public final class PlayerGlowCommand implements CoreCommand, BasicCommand {
     private final Supplier<GlowConfiguration> configurationSupplier;
     private final Consumer<Player> dialogOpener;
     private final BooleanSupplier configurationReloader;
+    private final Plugin plugin;
+    private final CoreTranslations translations;
 
     public PlayerGlowCommand(
+            Plugin plugin,
+            CoreTranslations translations,
             Supplier<GlowConfiguration> configurationSupplier,
             Consumer<Player> dialogOpener,
             BooleanSupplier configurationReloader
     ) {
+        this.plugin = plugin;
+        this.translations = translations;
         this.configurationSupplier = configurationSupplier;
         this.dialogOpener = dialogOpener;
         this.configurationReloader = configurationReloader;
@@ -55,22 +63,22 @@ public final class PlayerGlowCommand implements CoreCommand, BasicCommand {
 
     private void open(CommandSender sender) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(configurationSupplier.get().messages().playersOnly());
+            sender.sendMessage(translations.playersOnly());
             return;
         }
         dialogOpener.accept(player);
     }
 
     private void reload(CommandSender sender) {
-        GlowConfiguration.Messages messages = configurationSupplier.get().messages();
         if (!sender.isOp()) {
-            sender.sendMessage(messages.noPermission());
+            sender.sendMessage(translations.operatorOnly());
             return;
         }
+        long started = System.nanoTime();
         if (configurationReloader.getAsBoolean()) {
-            sender.sendMessage(configurationSupplier.get().messages().reloadSuccess());
+            sender.sendMessage(translations.reloadSuccess(plugin, System.nanoTime() - started));
         } else {
-            sender.sendMessage(messages.reloadFailure());
+            sender.sendMessage(translations.reloadFailure(plugin));
         }
     }
 }

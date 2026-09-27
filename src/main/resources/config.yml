@@ -14,11 +14,7 @@
 ## reste blanc et HCResourcePack ne peut pas identifier le profil du joueur.
 
 messages:
-  players-only: "<red>Cette commande doit être exécutée par un joueur.</red>"
-  no-permission: "<red>Vous n'avez pas la permission d'effectuer cette action.</red>"
   usage: "<red>Syntaxe : <white>/hcplugins glowing</white><gray> ou </gray><white>/hcplugins glowing reload</white></red>"
-  reload-success: "<green>La configuration des cosmétiques de glow a été rechargée.</green>"
-  reload-failure: "<red>Impossible de recharger la configuration. Consultez la console.</red>"
   selection-saved: "<green>Votre cosmétique de glow a été équipé et sauvegardé.</green>"
   selection-disabled: "<gray>Votre cosmétique de glow a été désactivé.</gray>"
   selection-invalidated: "<yellow>Votre cosmétique de glow a été retiré car il n'existe plus ou que vous ne possédez plus sa permission.</yellow>"

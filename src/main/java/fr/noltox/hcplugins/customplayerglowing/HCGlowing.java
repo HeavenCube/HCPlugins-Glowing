@@ -96,6 +96,8 @@ public final class HCGlowing extends JavaPlugin {
 
     private void registerCommands() {
         PlayerGlowCommand commands = new PlayerGlowCommand(
+                this,
+                HCPluginsCore.translations(this),
                 this::configuration,
                 this::openDialog,
                 this::reloadRuntime
