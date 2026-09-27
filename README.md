@@ -12,3 +12,8 @@ et publie un JAR versionné pour chaque build réussi de `main`.
 
 Le serveur requiert HCCore et HCPlaceholdersExtra. Le resource pack contenant
 les shaders est installé séparément, via Nexo.
+
+La configuration éditable se trouve dans `plugins/HCPlugins/HCGlowing.yml`.
+Les sélections persistantes des joueurs sont dans
+`plugins/HCPlugins/HCGlowing/data.yml`. Les anciens fichiers situés dans
+`plugins/HCGlowing/` ne sont pas repris automatiquement.

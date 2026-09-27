@@ -1,6 +1,7 @@
 package fr.noltox.hcplugins.customplayerglowing.storage;
 
 import fr.noltox.hcplugins.core.api.config.BukkitYaml;
+import fr.noltox.hcplugins.core.api.config.HCPluginFiles;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
@@ -28,7 +29,7 @@ public final class GlowSelectionStore {
 
     public GlowSelectionStore(Plugin plugin) {
         this.plugin = plugin;
-        dataFile = new File(plugin.getDataFolder(), "data.yml");
+        dataFile = HCPluginFiles.pluginDirectory(plugin).resolve("data.yml").toFile();
     }
 
     public void load() {
@@ -143,7 +144,7 @@ public final class GlowSelectionStore {
     }
 
     private void write(Map<UUID, String> replacement) throws IOException {
-        Path dataDirectory = plugin.getDataFolder().toPath();
+        Path dataDirectory = dataFile.toPath().getParent();
         Files.createDirectories(dataDirectory);
         Path temporaryFile = Files.createTempFile(dataDirectory, "player-glows-", ".yml.tmp");
         try {

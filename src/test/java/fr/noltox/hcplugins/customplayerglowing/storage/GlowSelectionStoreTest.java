@@ -39,7 +39,7 @@ class GlowSelectionStoreTest {
         store.load();
         UUID playerId = UUID.randomUUID();
         assertTrue(store.select(playerId, "gold"));
-        Path file = directory.resolve("data.yml");
+        Path file = dataFile();
         for (String malformed : new String[]{"selections: invalid\n", "selections: [gold]\n"}) {
             Files.writeString(file, malformed);
             assertThrows(IllegalStateException.class, store::load);
@@ -54,7 +54,7 @@ class GlowSelectionStoreTest {
         store.load();
         UUID playerId = UUID.randomUUID();
         assertTrue(store.select(playerId, "gold"));
-        Path file = directory.resolve("data.yml");
+        Path file = dataFile();
         String duplicate = "selections:\n  " + playerId + ": gold\n  " + playerId + ": green\n";
         Files.writeString(file, duplicate);
 
@@ -68,10 +68,17 @@ class GlowSelectionStoreTest {
                 Plugin.class.getClassLoader(), new Class<?>[]{Plugin.class},
                 (proxy, method, arguments) -> {
                     if (method.getName().equals("getDataFolder")) {
-                        return directory.toFile();
+                        return directory.resolve("HCGlowing").toFile();
+                    }
+                    if (method.getName().equals("getName")) {
+                        return "HCGlowing";
                     }
                     throw new UnsupportedOperationException(method.getName());
                 });
         return new GlowSelectionStore(plugin);
+    }
+
+    private Path dataFile() {
+        return directory.resolve("HCPlugins/HCGlowing/data.yml");
     }
 }

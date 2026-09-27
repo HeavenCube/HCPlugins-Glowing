@@ -2,6 +2,7 @@ package fr.noltox.hcplugins.customplayerglowing;
 
 import fr.noltox.hcplugins.core.api.HCPluginsCore;
 import fr.noltox.hcplugins.core.api.command.CoreCommandRegistration;
+import fr.noltox.hcplugins.core.api.config.HCPluginFiles;
 import fr.noltox.hcplugins.customplayerglowing.command.PlayerGlowCommand;
 import fr.noltox.hcplugins.customplayerglowing.config.GlowConfiguration;
 import fr.noltox.hcplugins.customplayerglowing.dialog.GlowSelectionDialog;
@@ -33,7 +34,7 @@ public final class HCGlowing extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        configurationFile = new File(getDataFolder(), "config.yml");
+        configurationFile = HCPluginFiles.singleConfiguration(this).toFile();
         try {
             ensureConfigurationFile();
             GlowConfiguration configuration = GlowConfiguration.load(configurationFile);
@@ -204,9 +205,7 @@ public final class HCGlowing extends JavaPlugin {
     }
 
     private void ensureConfigurationFile() {
-        if (!configurationFile.exists()) {
-            saveResource("config.yml", false);
-        }
+        HCPluginFiles.copyDefault(this, "config.yml", configurationFile.toPath());
     }
 
     private void synchronizeCosmeticPermissions(GlowConfiguration configuration) {
