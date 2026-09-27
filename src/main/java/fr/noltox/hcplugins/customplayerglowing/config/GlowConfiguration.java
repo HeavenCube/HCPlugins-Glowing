@@ -1,8 +1,8 @@
 package fr.noltox.hcplugins.customplayerglowing.config;
 
-import fr.noltox.hcglowprofiles.GlowProfiles;
-import fr.noltox.hcplugins.customplayerglowing.support.BukkitYaml;
-import fr.noltox.hcplugins.customplayerglowing.support.MiniMessages;
+import fr.noltox.hcplugins.core.api.glow.GlowProfiles;
+import fr.noltox.hcplugins.core.api.config.BukkitYaml;
+import fr.noltox.hcplugins.core.api.message.MiniMessages;
 import fr.noltox.hcplugins.customplayerglowing.permission.Permissions;
 import net.kyori.adventure.text.Component;
 import org.bukkit.configuration.ConfigurationSection;

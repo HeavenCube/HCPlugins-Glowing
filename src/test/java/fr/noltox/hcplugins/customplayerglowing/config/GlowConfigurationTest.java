@@ -1,6 +1,6 @@
 package fr.noltox.hcplugins.customplayerglowing.config;
 
-import fr.noltox.hcglowprofiles.GlowProfiles;
+import fr.noltox.hcplugins.core.api.glow.GlowProfiles;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

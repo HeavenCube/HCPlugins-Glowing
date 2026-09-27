@@ -1,6 +1,6 @@
 package fr.noltox.hcplugins.customplayerglowing.storage;
 
-import fr.noltox.hcplugins.customplayerglowing.support.BukkitYaml;
+import fr.noltox.hcplugins.core.api.config.BukkitYaml;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 

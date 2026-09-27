@@ -9,7 +9,7 @@ import fr.noltox.hcplugins.customplayerglowing.listener.PlayerGlowListener;
 import fr.noltox.hcplugins.customplayerglowing.placeholder.PlayerGlowPlaceholderProvider;
 import fr.noltox.hcplugins.customplayerglowing.service.GlowEngine;
 import fr.noltox.hcplugins.customplayerglowing.storage.GlowSelectionStore;
-import fr.noltox.hcplugins.customplayerglowing.support.DynamicPermissionRegistry;
+import fr.noltox.hcplugins.core.api.permission.DynamicPermissionRegistry;
 import fr.noltox.hcplugins.placeholdersextra.api.HCPlaceholders;
 import fr.noltox.hcplugins.placeholdersextra.api.PlaceholderProviderRegistration;
 import org.bukkit.Bukkit;
