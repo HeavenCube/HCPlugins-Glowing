@@ -1,10 +1,53 @@
-# HCPlugins-Glowing
+# Instructions — HCPlugins-Glowing
 
-- Java 25, Paper 26.2, Gradle Kotlin DSL.
-- HCCore owns `/hcplugins`; this plugin owns the top-level `/glow` shortcut.
-- Compile Core and PlaceholdersExtra APIs from sibling source checkouts.
-- Preserve vanilla glow, TAB carrier integration, and the placeholder provider lifecycle.
-- Do not add packets, NMS, reflection, scoreboard teams, or server tick animation.
-- Keep profile IDs and carriers aligned with the HeavenCube resource pack catalogue.
-- Run `./gradlew build` before finalizing Java or Gradle changes.
-- Do not commit, push, reset, rebase, stash, or change branches without explicit user authorization.
+## Démarrage et lecture ciblée
+
+1. Lire ce fichier, `git status --short`, puis l’entrée pertinente de [docs/TECHNICAL.md](docs/TECHNICAL.md).
+2. Avant toute modification technique, lire `../HCPlugins-Core/AGENTS.md` (ou le clone CI
+`.hcplugins/HCPlugins-Core/AGENTS.md`) et inspecter l’API Core concernée. Si Core manque,
+consulter [son guide](https://github.com/HeavenCube/HCPlugins-Core/blob/main/docs/ECOSYSTEM.md) ; ne pas deviner son contrat.
+3. Rechercher avec `rg` dans les fichiers concernés et leurs tests. Lire le code réel avant de modifier.
+
+## Contrat commun
+
+- Java 25, sans preview ; conserver toolchain, release 25 et Paper déclaré par le build (26.2 actuellement).
+- APIs publiques Paper modernes et Adventure en priorité ; vérifier signatures dans les sources/docs et compiler.
+- Records, pattern matching, switch expressions et collections immuables quand utiles ; simplicité et mesure
+  avant micro-optimisation. Virtual threads pour I/O indépendantes seulement, jamais pour état Bukkit.
+- Pas de NMS/CraftBukkit/réflexion maison ni grosse dépendance sans nécessité et accord explicite.
+- Avant une fonctionnalité dupliquée : réutiliser Core ; sinon ajouter la partie commune à Core d’abord,
+  puis adapter les consommateurs. Core ne dépend pas du métier des plugins ; APIs Paper directes restent adaptées.
+- HCCore seul possède `/hcplugins`. Utiliser son registre, ses traductions et helpers de fichiers/permissions.
+- API Core compileOnly via build composite ; ne pas la republier Maven, l'embarquer ou la relocaliser chez un consommateur.
+- État de jeu et registres sur thread serveur ; revalider activité/permission/session dans callbacks différés.
+- Préserver reload candidat/rollback, PDC et contrats existants ; fermer tâches, callbacks et handles au disable.
+
+## Invariants propres à ce dépôt
+
+- Plugin serveur `HCGlowing`, HCCore obligatoire ; module `glowing`.
+- HCCore et HCPlaceholdersExtra obligatoires. TAB transporte le carrier via le placeholder ; le pack donne les effets client.
+- Ne pas ajouter de paquets, NMS, réflexion, scoreboard teams ou animation serveur par tick.
+- Aligner profil ID/carrier avec Core et le pack ; le GPU calcule les gradients et animations.
+- Préserver la restitution du flag glowing antérieur : le plugin ne doit pas effacer un effet appartenant à un autre système.
+- Préserver rollback des sélections et des permissions, fermeture du provider et invalidation des anciens dialogues.
+
+## Validation, Git et documentation
+
+- Après Java/Gradle : `./gradlew build` ou `.\gradlew.bat build` sous PowerShell avec JDK 25.
+  Choisir les tests ciblés selon le risque ; ne pas masquer une erreur ni désactiver une vérification.
+- Docs seules : vérifier liens/chemins, faits et `git diff --check` ; pas de build coûteux sans raison concrète.
+- Ne pas confondre build réussi, CI passée et résultat observé en jeu. Indiquer la validation manquante.
+- Mettre à jour la section technique affectée ; conserver licence HeavenCube et notices tierces.
+- Pas de commit/push/reset/rebase/stash/changement de branche/release/déploiement sans autorisation explicite.
+  Une autorisation de session suffit ; préserver les modifications d’autres intervenants.
+
+## Efficacité du contexte et restitution
+
+- Charger seulement la section utile ; ne pas relire tous les dépôts/documents ni scanner build/.gradle.
+- Regrouper lectures indépendantes, limiter les logs aux erreurs/résumés, éviter les recherches répétées.
+- Résoudre une cause vérifiée, sans refactoring cosmétique ni tests qui recopient l’implémentation.
+- Pas de sous-agents sans demande ou instruction applicable ; les réserver à des tâches réellement indépendantes.
+- Poser une question uniquement pour une information bloquante ; poursuivre le travail déjà autorisé.
+- Réponse finale en français : changement, validation exacte, action/limite restante ; quelques points courts.
+  Pas de répétition du contexte ni de grands dumps de code. Résumer un handoff par objectif, fichiers/commits,
+  état des tests, blocage et prochaine action ; ne pas stocker de secrets ou créer une mémoire permanente sans demande.
