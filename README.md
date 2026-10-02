@@ -18,6 +18,18 @@ Les sélections persistantes des joueurs sont dans
 `plugins/HCPlugins/HCGlowing/data.yml`. Les anciens fichiers situés dans
 `plugins/HCGlowing/` ne sont pas repris automatiquement.
 
+## Liens importants
+
+- [HCPlugins-Core](https://github.com/HeavenCube/HCPlugins-Core) : HCCore, services communs et guide de création des plugins.
+- [HCPlugins-actions](https://github.com/HeavenCube/HCPlugins-actions) : workflows GitHub Actions partagés.
+- [HCPack-CustomGlowing](https://github.com/HeavenCube/HCPack-CustomGlowing) : resource pack Nexo des shaders de glow custom.
+- [HCPlugins-AdvancementsRedirect](https://github.com/HeavenCube/HCPlugins-AdvancementsRedirect)
+- [HCPlugins-Glowing](https://github.com/HeavenCube/HCPlugins-Glowing)
+- [HCPlugins-HuskHomesGUI](https://github.com/HeavenCube/HCPlugins-HuskHomesGUI)
+- [HCPlugins-ItemFrame](https://github.com/HeavenCube/HCPlugins-ItemFrame)
+- [HCPlugins-JoinMessage](https://github.com/HeavenCube/HCPlugins-JoinMessage)
+- [HCPlugins-PlaceholdersExtra](https://github.com/HeavenCube/HCPlugins-PlaceholdersExtra)
+
 ## Maintenance et documentation technique
 
 HCCore est obligatoire. Pour toute modification technique, commencer par [AGENTS.md](AGENTS.md),
