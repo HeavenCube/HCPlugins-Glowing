@@ -11,7 +11,9 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -98,17 +100,39 @@ public final class GlowSelectionStore {
      * Removes an unusable selection from memory even when the disk write fails.
      */
     public void invalidate(UUID uuid) {
-        if (!selections.containsKey(uuid)) {
+        invalidateAll(List.of(uuid));
+    }
+
+    /** Removes a permission-audit batch with at most one atomic write. Server thread only. */
+    public void invalidateAll(Collection<UUID> playerIds) {
+        if (playerIds.isEmpty()) {
             return;
         }
-        Map<UUID, String> replacement = new LinkedHashMap<>(selections);
-        replacement.remove(uuid);
-        selections = replacement;
+        boolean changed = false;
+        for (UUID playerId : playerIds) {
+            changed |= invalidateWithoutSaving(playerId);
+        }
+        if (!changed) {
+            return;
+        }
+        saveInvalidations();
+    }
+
+    /**
+     * Immediately removes a revoked selection before notifying the player. The audit must
+     * call saveInvalidations() in finally so a burst is written once. Server thread only.
+     */
+    public boolean invalidateWithoutSaving(UUID playerId) {
+        return selections.remove(playerId) != null;
+    }
+
+    /** Writes the latest state, including any later selections; never rolls back revoked choices. */
+    public void saveInvalidations() {
         try {
-            write(replacement);
+            write(selections);
         } catch (IOException exception) {
             plugin.getLogger().log(Level.SEVERE, exception,
-                    () -> "La sélection invalide de " + uuid + " n'a pas pu être retirée de data.yml.");
+                    () -> "Les sélections invalides n'ont pas pu être retirées de data.yml.");
         }
     }
 

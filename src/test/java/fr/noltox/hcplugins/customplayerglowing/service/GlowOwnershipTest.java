@@ -12,6 +12,32 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GlowOwnershipTest {
 
     @Test
+    void auditSnapshotSurvivesOwnershipRemovalAndIsReusedWithoutStaleIds() {
+        var ownership = new GlowEngine.GlowOwnership();
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        ownership.activate(first, false, "gold");
+        ownership.activate(second, true, "gold");
+        var buffer = new java.util.ArrayList<UUID>();
+        ownership.copyPlayerIdsTo(buffer);
+        for (UUID id : buffer) {
+            ownership.deactivate(id);
+        }
+        assertEquals(2, buffer.size());
+        ownership.copyPlayerIdsTo(buffer);
+        assertTrue(buffer.isEmpty());
+    }
+
+    @Test
+    void repeatedSynchronizationKeepsOriginalOwnership() {
+        var ownership = new GlowEngine.GlowOwnership();
+        UUID id = UUID.randomUUID();
+        ownership.activate(id, false, "gold");
+        ownership.activate(id, true, "gold");
+        assertFalse(ownership.deactivate(id));
+    }
+
+    @Test
     void changingProfileKeepsTheOriginalGlowingState() {
         var ownership = new GlowEngine.GlowOwnership();
         UUID playerId = UUID.randomUUID();

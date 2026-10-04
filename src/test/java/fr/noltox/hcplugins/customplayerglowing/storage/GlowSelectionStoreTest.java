@@ -19,6 +19,47 @@ class GlowSelectionStoreTest {
     Path directory;
 
     @Test
+    void deferredInvalidationWriteCannotDeleteALaterSelection() {
+        GlowSelectionStore store = store();
+        store.load();
+        UUID player = UUID.randomUUID();
+        assertTrue(store.select(player, "gold"));
+        assertTrue(store.invalidateWithoutSaving(player));
+        assertNull(store.selected(player));
+        assertTrue(store.select(player, "rainbow"));
+        store.saveInvalidations();
+        GlowSelectionStore reloaded = store();
+        reloaded.load();
+        assertEquals("rainbow", reloaded.selected(player));
+    }
+
+    @Test
+    void batchInvalidationPersistsOnlyAffectedSelections() {
+        GlowSelectionStore store = store();
+        store.load();
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        UUID kept = UUID.randomUUID();
+        assertTrue(store.replaceAll(Map.of(first, "gold", second, "rainbow", kept, "gold")));
+        store.invalidateAll(java.util.List.of(first, second, UUID.randomUUID()));
+        assertEquals(Map.of(kept, "gold"), store.snapshot());
+        GlowSelectionStore reloaded = store();
+        reloaded.load();
+        assertEquals(store.snapshot(), reloaded.snapshot());
+    }
+
+    @Test
+    void emptyAuditDoesNotTouchDisk() throws Exception {
+        GlowSelectionStore store = store();
+        store.load();
+        var oldTime = java.nio.file.attribute.FileTime.fromMillis(1_000L);
+        Files.setLastModifiedTime(dataFile(), oldTime);
+        store.invalidateAll(java.util.List.of());
+        store.invalidateAll(java.util.List.of(UUID.randomUUID()));
+        assertEquals(oldTime, Files.getLastModifiedTime(dataFile()));
+    }
+
+    @Test
     void selectionsSurviveReloadAndCanBeCleared() {
         GlowSelectionStore store = store();
         store.load();

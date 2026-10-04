@@ -64,6 +64,12 @@ maintient les dépendances. Une mise à jour de dépendance doit conserver ces c
 
 ## Invariants et zones à risque
 
+- Audit performance : resynchronisations regroupées via `DeferredUpdates<UUID>` du Core,
+  fermeture par génération ; audit contextuel 20 ticks conservé faute d'événement garanti.
+  Buffer UUID réutilisé et persistance des révocations groupée ; YAML toujours synchrone.
+  `invalidateWithoutSaving` doit être suivi de `saveInvalidations` en `finally`, sur le serveur.
+  [Rapport global](https://github.com/HeavenCube/HCPlugins-Core/blob/main/docs/PERFORMANCE_AUDIT.md).
+
 - Plugin serveur `HCGlowing`, HCCore obligatoire ; module `glowing`.
 - HCCore et HCPlaceholdersExtra obligatoires. TAB transporte le carrier via le placeholder ; le pack donne les effets client.
 - Ne pas ajouter de paquets, NMS, réflexion, scoreboard teams ou animation serveur par tick.

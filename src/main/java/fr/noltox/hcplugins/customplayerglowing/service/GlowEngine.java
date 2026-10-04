@@ -3,12 +3,15 @@ package fr.noltox.hcplugins.customplayerglowing.service;
 import fr.noltox.hcplugins.customplayerglowing.config.GlowConfiguration;
 import fr.noltox.hcplugins.customplayerglowing.config.GlowConfiguration.GlowPattern;
 import fr.noltox.hcplugins.customplayerglowing.storage.GlowSelectionStore;
+import fr.noltox.hcplugins.core.api.task.DeferredUpdates;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -27,6 +30,9 @@ public final class GlowEngine {
     private final GlowSelectionStore selectionStore;
     private final GlowOwnership ownership = new GlowOwnership();
     private final Map<UUID, String> tabColorCodes = new ConcurrentHashMap<>();
+    private final DeferredUpdates<UUID> resynchronizations;
+    private boolean auditInvalidatedSelections;
+    private final List<UUID> auditPlayers = new ArrayList<>();
     private BukkitTask permissionAudit;
     private boolean active;
 
@@ -43,6 +49,12 @@ public final class GlowEngine {
         this.plugin = plugin;
         this.configuration = configuration;
         this.selectionStore = selectionStore;
+        resynchronizations = new DeferredUpdates<>(plugin, playerId -> {
+            Player player = Bukkit.getPlayer(playerId);
+            if (active && plugin.isEnabled() && player != null && player.isOnline()) {
+                synchronize(player, true);
+            }
+        });
         ownership.restore(previousGlowingStates);
     }
 
@@ -72,11 +84,7 @@ public final class GlowEngine {
         if (!active) {
             return;
         }
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            if (active && plugin.isEnabled() && player.isOnline()) {
-                synchronize(player, true);
-            }
-        });
+        resynchronizations.request(player.getUniqueId());
     }
 
     public void synchronize(Player player) {
@@ -105,6 +113,7 @@ public final class GlowEngine {
 
     public void shutdown() {
         active = false;
+        resynchronizations.close();
         if (permissionAudit != null) {
             permissionAudit.cancel();
             permissionAudit = null;
@@ -117,6 +126,8 @@ public final class GlowEngine {
         }
         ownership.clear();
         tabColorCodes.clear();
+        auditInvalidatedSelections = false;
+        auditPlayers.clear();
     }
 
     /** Returns the legacy carrier code consumed as the final color in TAB's tagprefix. */
@@ -129,6 +140,10 @@ public final class GlowEngine {
     }
 
     private void synchronize(Player player, boolean notifyInvalidation) {
+        synchronize(player, notifyInvalidation, false);
+    }
+
+    private void synchronize(Player player, boolean notifyInvalidation, boolean batchInvalidation) {
         UUID playerId = player.getUniqueId();
         String selectedId = selectionStore.selected(playerId);
         if (selectedId == null) {
@@ -138,7 +153,11 @@ public final class GlowEngine {
         GlowPattern pattern = configuration.glowing(selectedId);
         if (pattern == null || !player.hasPermission(pattern.permission())) {
             deactivate(player);
-            selectionStore.invalidate(playerId);
+            if (batchInvalidation) {
+                auditInvalidatedSelections |= selectionStore.invalidateWithoutSaving(playerId);
+            } else {
+                selectionStore.invalidate(playerId);
+            }
             if (notifyInvalidation) {
                 player.sendMessage(configuration.messages().selectionInvalidated());
             }
@@ -149,11 +168,16 @@ public final class GlowEngine {
 
     private void activate(Player player, GlowPattern pattern) {
         UUID playerId = player.getUniqueId();
-        ownership.activate(playerId, player.isGlowing(), pattern.id());
-        if (!player.isGlowing()) {
+        boolean glowing = player.isGlowing();
+        ownership.activate(playerId, glowing, pattern.id());
+        if (!glowing) {
             player.setGlowing(true);
         }
-        tabColorCodes.put(playerId, "&" + pattern.profile().carrier().legacyCode());
+        char carrier = pattern.profile().carrier().legacyCode();
+        String current = tabColorCodes.get(playerId);
+        if (current == null || current.charAt(1) != carrier) {
+            tabColorCodes.put(playerId, "&" + carrier);
+        }
     }
 
     private void deactivate(Player player) {
@@ -169,10 +193,24 @@ public final class GlowEngine {
     }
 
     private void auditPermissions() {
-        for (UUID playerId : ownership.playerIds()) {
-            Player player = Bukkit.getPlayer(playerId);
-            if (player != null && player.isOnline()) {
-                synchronize(player, true);
+        // Arbitrary contextual permissions/Bukkit attachments have no guaranteed change event.
+        // A reusable snapshot allows synchronize() to remove ownership while iterating.
+        ownership.copyPlayerIdsTo(auditPlayers);
+        try {
+            for (UUID playerId : auditPlayers) {
+                Player player = Bukkit.getPlayer(playerId);
+                if (player != null && player.isOnline()) {
+                    synchronize(player, true, true);
+                }
+            }
+        } finally {
+            try {
+                if (auditInvalidatedSelections) {
+                    selectionStore.saveInvalidations();
+                }
+            } finally {
+                auditInvalidatedSelections = false;
+                auditPlayers.clear();
             }
         }
     }
@@ -189,10 +227,12 @@ public final class GlowEngine {
         private final Map<UUID, OwnedGlow> active = new HashMap<>();
 
         void activate(UUID playerId, boolean currentGlowing, String profileId) {
-            active.compute(playerId, (ignored, previous) -> new OwnedGlow(
-                    previous == null ? currentGlowing : previous.previousGlowing(),
-                    profileId
-            ));
+            OwnedGlow previous = active.get(playerId);
+            if (previous == null) {
+                active.put(playerId, new OwnedGlow(currentGlowing, profileId));
+            } else if (!previous.profileId().equals(profileId)) {
+                active.put(playerId, new OwnedGlow(previous.previousGlowing(), profileId));
+            }
         }
 
         Boolean deactivate(UUID playerId) {
@@ -202,6 +242,13 @@ public final class GlowEngine {
 
         Set<UUID> playerIds() {
             return Set.copyOf(active.keySet());
+        }
+
+        void copyPlayerIdsTo(List<UUID> target) {
+            target.clear();
+            for (UUID playerId : active.keySet()) {
+                target.add(playerId);
+            }
         }
 
         Map<UUID, Boolean> previousGlowingStates() {
