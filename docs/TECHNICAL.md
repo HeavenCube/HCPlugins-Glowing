@@ -2,6 +2,9 @@
 
 ## Point d’entrée
 
+Cible : Paper 26.3 (`26.3.build.+`), Java 25 sans preview. Compilation avec `-Xlint:all` ;
+examiner les warnings avant de les attribuer au plugin ou à une dépendance.
+
 Ce dépôt appartient à la suite privée d’usage HeavenCube, publiée comme source consultable.
 Il dépend obligatoirement de HCCore. Lire d’abord [AGENTS.md](../AGENTS.md), puis le Core voisin.
 Le [guide commun](https://github.com/HeavenCube/HCPlugins-Core/blob/main/docs/ECOSYSTEM.md) décrit les règles Java/Paper, les contrats Core,
@@ -75,6 +78,10 @@ un loader YAML, un registre de commandes ou un catalogue de traductions. Garder 
 thread réel, puis revalider le contexte avant mutation.
 
 ## Validation et limites
+
+Une resynchronisation différée revérifie l’activité du moteur après reload/disable.
+Choisir à nouveau le même cosmétique évite une écriture disque. Les autres sauvegardes restent
+synchrones et atomiques pour préserver le signalement immédiat des échecs et le rollback.
 
 `GlowConfigurationTest`, `GlowOwnershipTest`, `GlowSelectionStoreTest` existent. En jeu : sélection/suppression, permission retirée, reload invalide, reconnexion, coexistence d’un glowing externe, résultat TAB et pack sur deux clients.
 

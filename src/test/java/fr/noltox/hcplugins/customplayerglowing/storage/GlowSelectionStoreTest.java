@@ -34,6 +34,18 @@ class GlowSelectionStoreTest {
     }
 
     @Test
+    void selectingTheSameProfileDoesNotRewriteTheDataFile() throws Exception {
+        GlowSelectionStore store = store();
+        store.load();
+        UUID playerId = UUID.randomUUID();
+        assertTrue(store.select(playerId, "gold"));
+        var oldTime = java.nio.file.attribute.FileTime.fromMillis(1_000L);
+        Files.setLastModifiedTime(dataFile(), oldTime);
+        assertTrue(store.select(playerId, "gold"));
+        assertEquals(oldTime, Files.getLastModifiedTime(dataFile()));
+    }
+
+    @Test
     void malformedSelectionsPreserveFileAndLoadedState() throws Exception {
         GlowSelectionStore store = store();
         store.load();

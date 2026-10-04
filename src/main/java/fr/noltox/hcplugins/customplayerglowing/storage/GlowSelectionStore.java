@@ -77,6 +77,9 @@ public final class GlowSelectionStore {
     }
 
     public boolean select(UUID uuid, String glowingId) {
+        if (glowingId.equals(selections.get(uuid))) {
+            return true;
+        }
         Map<UUID, String> replacement = new LinkedHashMap<>(selections);
         replacement.put(uuid, glowingId);
         return persistAndReplace(replacement, "Impossible de sauvegarder le glow de " + uuid + ".");

@@ -3,7 +3,7 @@
 ## Les identifiants acceptent uniquement les minuscules, chiffres, tirets et underscores.
 ## Les motifs non possédés restent visibles avec leur bouton Paper sans action.
 ##
-## "profile" référence un profil graphique défini dans HCResourcePack. Les couleurs,
+## "profile" référence un profil graphique défini dans HCPack-CustomAssets. Les couleurs,
 ## gradients et animations sont calculés côté GPU ; le serveur ne change aucune
 ## couleur à chaque tick. Les couleurs HEX restent autorisées dans MiniMessage.
 ##
@@ -11,7 +11,7 @@
 ## tagprefix concerné dans plugins/TAB/groups.yml, puis définissez ce placeholder
 ## à 1000 ms dans plugins/TAB/config.yml > placeholder-refresh-intervals. TAB fournit
 ## alors la couleur de team utilisée comme carrier. Sans cette intégration, le glow
-## reste blanc et HCResourcePack ne peut pas identifier le profil du joueur.
+## reste blanc et HCPack-CustomAssets ne peut pas identifier le profil du joueur.
 
 messages:
   usage: "<red>Syntaxe : <white>/hcplugins glowing</white><gray> ou </gray><white>/hcplugins glowing reload</white></red>"

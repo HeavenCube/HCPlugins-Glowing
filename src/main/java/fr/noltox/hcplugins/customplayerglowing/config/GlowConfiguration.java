@@ -43,7 +43,7 @@ public record GlowConfiguration(Map<String, GlowPattern> glowings, Messages mess
             String profileId = requiredString(configuration, path + ".profile");
             GlowProfiles.Profile profile = GlowProfiles.find(profileId)
                     .orElseThrow(() -> invalid("Le profil '" + profileId + "' de '" + path
-                            + "' n'existe pas dans HCResourcePack."));
+                            + "' n'existe pas dans le catalogue Core/HCPack-CustomAssets."));
             glowings.put(id, new GlowPattern(
                     id,
                     Permissions.cosmetic(id),

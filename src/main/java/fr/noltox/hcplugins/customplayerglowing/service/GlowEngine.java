@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Owns vanilla glowing state while TAB transports the selected carrier as the player's team color.
- * Visual animation is entirely evaluated by HCResourcePack on the GPU.
+ * Visual animation is entirely evaluated by HCPack-CustomAssets on the GPU.
  */
 public final class GlowEngine {
 
@@ -28,6 +28,7 @@ public final class GlowEngine {
     private final GlowOwnership ownership = new GlowOwnership();
     private final Map<UUID, String> tabColorCodes = new ConcurrentHashMap<>();
     private BukkitTask permissionAudit;
+    private boolean active;
 
     public GlowEngine(Plugin plugin, GlowConfiguration configuration, GlowSelectionStore selectionStore) {
         this(plugin, configuration, selectionStore, Map.of());
@@ -46,6 +47,10 @@ public final class GlowEngine {
     }
 
     public void start() {
+        if (active) {
+            return;
+        }
+        active = true;
         Bukkit.getOnlinePlayers().forEach(player -> synchronize(player, false));
         permissionAudit = Bukkit.getScheduler().runTaskTimer(
                 plugin,
@@ -64,8 +69,11 @@ public final class GlowEngine {
     }
 
     public void queueResynchronization(Player player) {
+        if (!active) {
+            return;
+        }
         Bukkit.getScheduler().runTask(plugin, () -> {
-            if (player.isOnline()) {
+            if (active && plugin.isEnabled() && player.isOnline()) {
                 synchronize(player, true);
             }
         });
@@ -96,6 +104,7 @@ public final class GlowEngine {
     }
 
     public void shutdown() {
+        active = false;
         if (permissionAudit != null) {
             permissionAudit.cancel();
             permissionAudit = null;

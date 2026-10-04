@@ -1,5 +1,7 @@
 # HCPlugins-Glowing
 
+**Cible : Paper/Minecraft 26.3 exclusivement, Java 25.** Le build utilise `26.3.build.+`.
+
 **CI :** sources/ressources/build seulement ; docs seules sans runner. Pour les exceptions,
 voir [la politique CI et les marqueurs de skip](https://github.com/HeavenCube/HCPlugins-actions/blob/main/docs/CI_COSTS.md).
 
@@ -11,7 +13,8 @@ autorisation écrite préalable. Voir [LICENSE](LICENSE).
 
 Cloner `HCPlugins-Core` et `HCPlugins-PlaceholdersExtra` à côté de ce dépôt,
 puis lancer `./gradlew build`. La CI clone les branches `main` publiques
-et publie un JAR versionné pour chaque build réussi de `main`.
+et publie `HCGlowing.jar` dans chaque release après un build réussi de `main`.
+Le fichier de build et la version interne restent `AAAA.MM.JJ-bN`.
 
 Le serveur requiert HCCore et HCPlaceholdersExtra. Le resource pack contenant
 les shaders est installé séparément, via Nexo.

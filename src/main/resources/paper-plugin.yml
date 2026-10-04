@@ -1,8 +1,8 @@
 name: HCGlowing
 version: "${version}"
 main: fr.noltox.hcplugins.customplayerglowing.HCGlowing
-api-version: "26.2"
-description: Sélectionne des profils de glow vanilla rendus par HCResourcePack.
+api-version: "26.3"
+description: Sélectionne des profils de glow vanilla rendus par HCPack-CustomAssets.
 author: Noltox
 website: https://heavencube.fr/
 dependencies:
