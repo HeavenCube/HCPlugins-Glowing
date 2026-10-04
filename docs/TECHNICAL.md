@@ -34,7 +34,21 @@ une deuxième racine. Les résultats de reload, refus opérateur et autres texte
 
 ## Fichiers et données
 
-`plugins/HCPlugins/HCGlowing.yml` : profils, boutons, messages métier. `plugins/HCPlugins/HCGlowing/data.yml` : sélection par UUID. Le reload valide la nouvelle configuration et tente de restaurer permissions/sélections/runtime en cas d’échec.
+`plugins/HCPlugins/HCGlowing.yml` : profils, boutons, messages métier.
+La sélection appartient au PDC du joueur : clé `hcglowing:selected_profile`, type `PersistentDataType.STRING`.
+La valeur est l'ID du cosmétique dans la configuration (ex. `heaven`), pas l'ID du profil Core (`heaven-gradient`).
+L'absence de clé signifie aucun cosmétique équipé. Désactiver ou invalider le choix supprime uniquement cette clé.
+
+Le serveur sauvegarde ce PDC avec les données du joueur ; le plugin ne force pas `Player#saveData()`.
+Tous les accès passent par un joueur connecté, sur le thread serveur : aucune lecture hors ligne,
+écriture disque directe, tâche de sauvegarde ou map globale de sélections.
+Les anciens `data.yml` ne sont ni lus, importés, sauvegardés ni supprimés automatiquement.
+Ils peuvent être retirés manuellement ; leurs sélections sont volontairement abandonnées.
+
+Le démarrage, la connexion et le reload vérifient le choix contre la configuration et les permissions actuelles.
+Un choix devenu invalide est supprimé ; les joueurs hors ligne sont vérifiés à leur prochaine connexion.
+Le reload valide son candidat avant de remplacer le runtime et garde un snapshot temporaire des seuls joueurs
+connectés pour restaurer leurs sélections, permissions et runtime si l'activation échoue.
 
 Valeurs par défaut dans `src/main/resources/`, jamais écrasées à chaque démarrage. Aucun import
 automatique des anciens dossiers du monorepo. Messages communs dans `plugins/HCPlugins/translations.yml` ;
@@ -51,7 +65,7 @@ messages métier locaux. Modifier le fichier partagé se recharge avec `/hcplugi
 | [HCGlowing.java](../src/main/java/fr/noltox/hcplugins/customplayerglowing/HCGlowing.java) | Orchestration, génération runtime, reload et rollback, cleanup. |
 | [GlowConfiguration.java](../src/main/java/fr/noltox/hcplugins/customplayerglowing/config/GlowConfiguration.java) | Validation des IDs et profils du Core, configuration immuable. |
 | [GlowEngine.java](../src/main/java/fr/noltox/hcplugins/customplayerglowing/service/GlowEngine.java) | Ownership du glowing, application/restitution et synchronisation des choix. |
-| [GlowSelectionStore.java](../src/main/java/fr/noltox/hcplugins/customplayerglowing/storage/GlowSelectionStore.java) | Persistance des sélections et restauration après reload raté. |
+| [GlowSelectionStore.java](../src/main/java/fr/noltox/hcplugins/customplayerglowing/storage/GlowSelectionStore.java) | Clé PDC joueur, sélection/suppression et snapshot temporaire pour rollback du reload. |
 | [GlowSelectionDialog.java](../src/main/java/fr/noltox/hcplugins/customplayerglowing/dialog/GlowSelectionDialog.java) | Dialogue Paper, callbacks planifiés, génération active et permission revérifiée. |
 | [PlayerGlowPlaceholderProvider.java](../src/main/java/fr/noltox/hcplugins/customplayerglowing/placeholder/PlayerGlowPlaceholderProvider.java) | Carrier legacy fourni au registre PlaceholdersExtra. |
 | [PlayerGlowListener.java](../src/main/java/fr/noltox/hcplugins/customplayerglowing/listener/PlayerGlowListener.java) | Synchronisation au cours du lifecycle des joueurs. |
@@ -66,9 +80,9 @@ maintient les dépendances. Une mise à jour de dépendance doit conserver ces c
 
 - Audit performance : resynchronisations regroupées via `DeferredUpdates<UUID>` du Core,
   fermeture par génération ; audit contextuel 20 ticks conservé faute d'événement garanti.
-  Buffer UUID réutilisé et persistance des révocations groupée ; YAML toujours synchrone.
-  `invalidateWithoutSaving` doit être suivi de `saveInvalidations` en `finally`, sur le serveur.
-  [Rapport global](https://github.com/HeavenCube/HCPlugins-Core/blob/main/docs/PERFORMANCE_AUDIT.md).
+  Buffer UUID réutilisé ; une révocation supprime la clé du PDC en mémoire, sans sérialiser de fichier.
+  Le [rapport global](https://github.com/HeavenCube/HCPlugins-Core/blob/main/docs/PERFORMANCE_AUDIT.md)
+  décrit l'audit précédent ; ses remarques sur la sauvegarde YAML de Glowing sont désormais historiques.
 
 - Plugin serveur `HCGlowing`, HCCore obligatoire ; module `glowing`.
 - HCCore et HCPlaceholdersExtra obligatoires. TAB transporte le carrier via le placeholder ; le pack donne les effets client.
@@ -86,10 +100,17 @@ thread réel, puis revalider le contexte avant mutation.
 ## Validation et limites
 
 Une resynchronisation différée revérifie l’activité du moteur après reload/disable.
-Choisir à nouveau le même cosmétique évite une écriture disque. Les autres sauvegardes restent
-synchrones et atomiques pour préserver le signalement immédiat des échecs et le rollback.
+Choisir à nouveau le même cosmétique évite de réécrire sa clé PDC. Sélection, retrait et révocation
+mutent seulement ce PDC en mémoire ; la persistance disque suit la sauvegarde native du joueur.
+La déconnexion et le disable libèrent l'état visuel sans supprimer le choix persistant.
+Le message `messages.save-failure` a été retiré : aucune écriture YAML de sélection n'est effectuée.
 
-`GlowConfigurationTest`, `GlowOwnershipTest`, `GlowSelectionStoreTest` existent. En jeu : sélection/suppression, permission retirée, reload invalide, reconnexion, coexistence d’un glowing externe, résultat TAB et pack sur deux clients.
+`GlowConfigurationTest`, `GlowOwnershipTest`, `GlowSelectionStoreTest` et `GlowEngineTest` existent.
+Les tests PDC utilisent des joueurs simulés en mémoire et couvrent isolation des joueurs et des clés,
+rollback, refus de permission, révocation, retrait, quit/join et profil supprimé.
+Ils ne prouvent pas la sérialisation réelle des fichiers joueur par Paper.
+En jeu : sélection/suppression, permission retirée, reload invalide, reconnexion puis redémarrage du serveur,
+coexistence d’un glowing externe, résultat TAB et pack sur deux clients.
 
 Sans transport TAB approprié, le glow reste blanc. Un build ne valide ni la fusion Nexo, ni le tagprefix TAB, ni le rendu GPU.
 

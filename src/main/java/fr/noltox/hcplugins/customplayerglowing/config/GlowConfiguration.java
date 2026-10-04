@@ -57,8 +57,7 @@ public record GlowConfiguration(Map<String, GlowPattern> glowings, Messages mess
                 component(configuration, "messages.usage"),
                 component(configuration, "messages.selection-saved"),
                 component(configuration, "messages.selection-disabled"),
-                component(configuration, "messages.selection-invalidated"),
-                component(configuration, "messages.save-failure")
+                component(configuration, "messages.selection-invalidated")
         );
         DialogText dialog = new DialogText(
                 component(configuration, "dialog.title"),
@@ -110,8 +109,7 @@ public record GlowConfiguration(Map<String, GlowPattern> glowings, Messages mess
             Component usage,
             Component selectionSaved,
             Component selectionDisabled,
-            Component selectionInvalidated,
-            Component saveFailure
+            Component selectionInvalidated
     ) {
     }
 

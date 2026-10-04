@@ -34,6 +34,9 @@ consulter [son guide](https://github.com/HeavenCube/HCPlugins-Core/blob/main/doc
 - Aligner profil ID/carrier avec Core et le pack ; le GPU calcule les gradients et animations.
 - Préserver la restitution du flag glowing antérieur : le plugin ne doit pas effacer un effet appartenant à un autre système.
 - Préserver rollback des sélections et des permissions, fermeture du provider et invalidation des anciens dialogues.
+- Sélection dans le PDC joueur : `hcglowing:selected_profile`, STRING, ID du cosmétique configuré.
+  Accès sur le thread serveur ; sauvegarde native du joueur, sans `saveData()`, I/O manuelle,
+  lecture des joueurs hors ligne ni cache global de sélections. Ne pas réintroduire `data.yml` ou de migration.
 
 ## Validation, Git et documentation
 

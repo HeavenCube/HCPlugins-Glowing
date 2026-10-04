@@ -31,7 +31,6 @@ public final class GlowEngine {
     private final GlowOwnership ownership = new GlowOwnership();
     private final Map<UUID, String> tabColorCodes = new ConcurrentHashMap<>();
     private final DeferredUpdates<UUID> resynchronizations;
-    private boolean auditInvalidatedSelections;
     private final List<UUID> auditPlayers = new ArrayList<>();
     private BukkitTask permissionAudit;
     private boolean active;
@@ -96,19 +95,14 @@ public final class GlowEngine {
         if (pattern == null || !player.hasPermission(pattern.permission())) {
             return SelectionResult.NOT_ALLOWED;
         }
-        if (!selectionStore.select(player.getUniqueId(), glowingId)) {
-            return SelectionResult.SAVE_FAILED;
-        }
+        selectionStore.select(player, glowingId);
         activate(player, pattern);
         return SelectionResult.APPLIED;
     }
 
-    public boolean disable(Player player) {
-        if (!selectionStore.clear(player.getUniqueId())) {
-            return false;
-        }
+    public void disable(Player player) {
+        selectionStore.clear(player);
         deactivate(player);
-        return true;
     }
 
     public void shutdown() {
@@ -126,7 +120,6 @@ public final class GlowEngine {
         }
         ownership.clear();
         tabColorCodes.clear();
-        auditInvalidatedSelections = false;
         auditPlayers.clear();
     }
 
@@ -140,12 +133,7 @@ public final class GlowEngine {
     }
 
     private void synchronize(Player player, boolean notifyInvalidation) {
-        synchronize(player, notifyInvalidation, false);
-    }
-
-    private void synchronize(Player player, boolean notifyInvalidation, boolean batchInvalidation) {
-        UUID playerId = player.getUniqueId();
-        String selectedId = selectionStore.selected(playerId);
+        String selectedId = selectionStore.selected(player);
         if (selectedId == null) {
             deactivate(player);
             return;
@@ -153,11 +141,7 @@ public final class GlowEngine {
         GlowPattern pattern = configuration.glowing(selectedId);
         if (pattern == null || !player.hasPermission(pattern.permission())) {
             deactivate(player);
-            if (batchInvalidation) {
-                auditInvalidatedSelections |= selectionStore.invalidateWithoutSaving(playerId);
-            } else {
-                selectionStore.invalidate(playerId);
-            }
+            selectionStore.clear(player);
             if (notifyInvalidation) {
                 player.sendMessage(configuration.messages().selectionInvalidated());
             }
@@ -200,25 +184,17 @@ public final class GlowEngine {
             for (UUID playerId : auditPlayers) {
                 Player player = Bukkit.getPlayer(playerId);
                 if (player != null && player.isOnline()) {
-                    synchronize(player, true, true);
+                    synchronize(player, true);
                 }
             }
         } finally {
-            try {
-                if (auditInvalidatedSelections) {
-                    selectionStore.saveInvalidations();
-                }
-            } finally {
-                auditInvalidatedSelections = false;
-                auditPlayers.clear();
-            }
+            auditPlayers.clear();
         }
     }
 
     public enum SelectionResult {
         APPLIED,
-        NOT_ALLOWED,
-        SAVE_FAILED
+        NOT_ALLOWED
     }
 
     /** Pure ownership state kept separate so restoration semantics are directly testable. */

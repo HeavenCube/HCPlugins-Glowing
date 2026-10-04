@@ -55,7 +55,7 @@ public final class GlowSelectionDialog {
             return;
         }
         glowEngine.synchronize(player);
-        String selectedId = selectionStore.selected(player.getUniqueId());
+        String selectedId = selectionStore.selected(player);
         List<ActionButton> actions = new ArrayList<>(configuration.glowings().size() + 1);
         for (GlowPattern pattern : configuration.glowings().values()) {
             Component label = pattern.buttonName();
@@ -123,7 +123,6 @@ public final class GlowSelectionDialog {
                 player.closeDialog();
             }
             case NOT_ALLOWED -> player.sendMessage(HCPluginsCore.translations(plugin).noPermission());
-            case SAVE_FAILED -> player.sendMessage(configuration.messages().saveFailure());
         }
     }
 
@@ -137,11 +136,8 @@ public final class GlowSelectionDialog {
         if (!active || !player.isOnline()) {
             return;
         }
-        if (glowEngine.disable(player)) {
-            player.sendMessage(configuration.messages().selectionDisabled());
-        } else {
-            player.sendMessage(configuration.messages().saveFailure());
-        }
+        glowEngine.disable(player);
+        player.sendMessage(configuration.messages().selectionDisabled());
         open(player);
     }
 

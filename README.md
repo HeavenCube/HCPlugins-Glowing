@@ -20,9 +20,10 @@ Le serveur requiert HCCore et HCPlaceholdersExtra. Le resource pack contenant
 les shaders est installé séparément, via Nexo.
 
 La configuration éditable se trouve dans `plugins/HCPlugins/HCGlowing.yml`.
-Les sélections persistantes des joueurs sont dans
-`plugins/HCPlugins/HCGlowing/data.yml`. Les anciens fichiers situés dans
-`plugins/HCGlowing/` ne sont pas repris automatiquement.
+Le cosmétique choisi est stocké dans le PDC de chaque joueur, sous la clé
+`hcglowing:selected_profile`, puis sauvegardé avec ses données par le serveur.
+Il n'y a plus de fichier YAML de sauvegarde des sélections. Les anciens fichiers
+`data.yml` ne sont ni lus ni importés ; chaque joueur repart sans sélection.
 
 ## Liens importants
 

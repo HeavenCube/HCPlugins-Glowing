@@ -45,13 +45,7 @@ public final class HCGlowing extends JavaPlugin {
             );
             synchronizeCosmeticPermissions(configuration);
             selectionStore = new GlowSelectionStore(this);
-            selectionStore.load();
-
-            SanitizedSelections sanitized = sanitizeSelections(configuration);
-            if (!sanitized.selections().equals(selectionStore.snapshot())
-                    && !selectionStore.replaceAll(sanitized.selections())) {
-                throw new IllegalStateException("Impossible d'assainir les sélections persistées.");
-            }
+            Set<UUID> invalidOnlinePlayers = invalidSelections(configuration);
 
             runtime = RuntimeComponents.create(this, configuration, selectionStore);
             Bukkit.getPluginManager().registerEvents(new PlayerGlowListener(this::glowEngine), this);
@@ -62,7 +56,7 @@ public final class HCGlowing extends JavaPlugin {
             );
             registerCommands();
             runtime.start();
-            notifyInvalidated(sanitized.invalidOnlinePlayers(), configuration);
+            notifyInvalidated(invalidOnlinePlayers, configuration);
         } catch (RuntimeException exception) {
             getLogger().log(Level.SEVERE,
                     "Impossible d'initialiser HCGlowing. Le plugin va être désactivé.", exception);
@@ -119,26 +113,21 @@ public final class HCGlowing extends JavaPlugin {
      */
     private boolean reloadRuntime() {
         RuntimeComponents previous = runtime;
-        Map<UUID, String> previousSelections = selectionStore.snapshot();
+        Map<UUID, String> previousSelections = selectionStore.snapshot(Bukkit.getOnlinePlayers());
         RuntimeComponents replacement;
         Map<UUID, Boolean> previousGlowingStates = previous.glowEngine().previousGlowingStates();
         GlowConfiguration replacementConfiguration;
-        SanitizedSelections sanitized;
+        Set<UUID> invalidOnlinePlayers;
         try {
             replacementConfiguration = GlowConfiguration.load(configurationFile);
             synchronizeCosmeticPermissions(replacementConfiguration);
-            sanitized = sanitizeSelections(replacementConfiguration);
+            invalidOnlinePlayers = invalidSelections(replacementConfiguration);
             replacement = RuntimeComponents.create(
                     this,
                     replacementConfiguration,
                     selectionStore,
                     previousGlowingStates
             );
-            if (!sanitized.selections().equals(previousSelections)
-                    && !selectionStore.replaceAll(sanitized.selections())) {
-                synchronizeCosmeticPermissions(previous.configuration());
-                return false;
-            }
         } catch (RuntimeException exception) {
             restoreCosmeticPermissions(previous.configuration(), exception);
             getLogger().log(Level.SEVERE,
@@ -150,14 +139,12 @@ public final class HCGlowing extends JavaPlugin {
         runtime = replacement;
         try {
             replacement.start();
-            notifyInvalidated(sanitized.invalidOnlinePlayers(), replacementConfiguration);
+            notifyInvalidated(invalidOnlinePlayers, replacementConfiguration);
             return true;
         } catch (RuntimeException activationException) {
             replacement.shutdown();
             restoreCosmeticPermissions(previous.configuration(), activationException);
-            if (!selectionStore.restoreAfterFailedReload(previousSelections)) {
-                getLogger().severe("data.yml n'a pas pu être restauré après l'échec du rechargement.");
-            }
+            selectionStore.restoreAfterFailedReload(Bukkit.getOnlinePlayers(), previousSelections);
 
             RuntimeComponents recovered = RuntimeComponents.create(
                     this,
@@ -183,19 +170,19 @@ public final class HCGlowing extends JavaPlugin {
         }
     }
 
-    private SanitizedSelections sanitizeSelections(GlowConfiguration configuration) {
-        Map<UUID, String> validSelections = new LinkedHashMap<>();
+    private Set<UUID> invalidSelections(GlowConfiguration configuration) {
         Set<UUID> invalidOnlinePlayers = new LinkedHashSet<>();
-        selectionStore.snapshot().forEach((uuid, glowingId) -> {
-            GlowConfiguration.GlowPattern pattern = configuration.glowing(glowingId);
-            Player onlinePlayer = Bukkit.getPlayer(uuid);
-            if (pattern != null && (onlinePlayer == null || onlinePlayer.hasPermission(pattern.permission()))) {
-                validSelections.put(uuid, glowingId);
-            } else if (onlinePlayer != null) {
-                invalidOnlinePlayers.add(uuid);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            String glowingId = selectionStore.selected(player);
+            if (glowingId == null) {
+                continue;
             }
-        });
-        return new SanitizedSelections(Map.copyOf(validSelections), Set.copyOf(invalidOnlinePlayers));
+            GlowConfiguration.GlowPattern pattern = configuration.glowing(glowingId);
+            if (pattern == null || !player.hasPermission(pattern.permission())) {
+                invalidOnlinePlayers.add(player.getUniqueId());
+            }
+        }
+        return Set.copyOf(invalidOnlinePlayers);
     }
 
     private void notifyInvalidated(Set<UUID> invalidated, GlowConfiguration configuration) {
@@ -247,12 +234,6 @@ public final class HCGlowing extends JavaPlugin {
         } catch (RuntimeException | LinkageError exception) {
             getLogger().log(Level.WARNING, exception, () -> "Impossible d'arrêter proprement " + component + '.');
         }
-    }
-
-    private record SanitizedSelections(
-            Map<UUID, String> selections,
-            Set<UUID> invalidOnlinePlayers
-    ) {
     }
 
     private record RuntimeComponents(

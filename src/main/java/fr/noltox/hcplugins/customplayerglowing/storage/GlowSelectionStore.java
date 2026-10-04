@@ -1,197 +1,67 @@
 package fr.noltox.hcplugins.customplayerglowing.storage;
 
-import fr.noltox.hcplugins.core.api.config.BukkitYaml;
-import fr.noltox.hcplugins.core.api.config.HCPluginFiles;
-import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
-import java.util.logging.Level;
 
 /**
- * Persists one selected glowing ID per player in a dedicated YAML file.
+ * Stores the selected cosmetic in the player's PDC, saved by Minecraft with player data.
+ * Access on the server thread only; no player references, file I/O or offline-player reads.
  */
 public final class GlowSelectionStore {
 
-    private static final String SELECTIONS_PATH = "selections";
-
-    private final Plugin plugin;
-    private final File dataFile;
-    private Map<UUID, String> selections = new LinkedHashMap<>();
+    private final NamespacedKey selectionKey;
 
     public GlowSelectionStore(Plugin plugin) {
-        this.plugin = plugin;
-        dataFile = HCPluginFiles.pluginDirectory(plugin).resolve("data.yml").toFile();
+        selectionKey = new NamespacedKey(plugin, "selected_profile");
     }
 
-    public void load() {
-        if (!dataFile.exists()) {
-            try {
-                write(Map.of());
-                selections = new LinkedHashMap<>();
-                return;
-            } catch (IOException exception) {
-                throw new IllegalStateException("Impossible de créer data.yml.", exception);
+    public String selected(Player player) {
+        return player.getPersistentDataContainer().get(selectionKey, PersistentDataType.STRING);
+    }
+
+    public void select(Player player, String glowingId) {
+        Objects.requireNonNull(glowingId, "glowingId");
+        if (glowingId.isBlank()) {
+            throw new IllegalArgumentException("The selected cosmetic ID must not be blank.");
+        }
+        if (!glowingId.equals(selected(player))) {
+            player.getPersistentDataContainer().set(selectionKey, PersistentDataType.STRING, glowingId);
+        }
+    }
+
+    public void clear(Player player) {
+        player.getPersistentDataContainer().remove(selectionKey);
+    }
+
+    /** Temporary reload snapshot of the supplied online players; unrelated PDC keys are untouched. */
+    public Map<UUID, String> snapshot(Collection<? extends Player> players) {
+        Map<UUID, String> selections = new HashMap<>();
+        for (Player player : players) {
+            String selected = selected(player);
+            if (selected != null) {
+                selections.put(player.getUniqueId(), selected);
             }
         }
-
-        YamlConfiguration data = BukkitYaml.load(dataFile.toPath());
-
-        Map<UUID, String> loaded = new LinkedHashMap<>();
-        var section = data.getConfigurationSection(SELECTIONS_PATH);
-        if (data.contains(SELECTIONS_PATH) && section == null) {
-            throw new IllegalStateException("La clé 'selections' de data.yml doit être une section YAML.");
-        }
-        if (section != null) {
-            for (String rawUuid : section.getKeys(false)) {
-                UUID uuid;
-                try {
-                    uuid = UUID.fromString(rawUuid);
-                } catch (IllegalArgumentException exception) {
-                    throw new IllegalStateException("UUID invalide dans data.yml : " + rawUuid, exception);
-                }
-                Object rawSelection = section.get(rawUuid);
-                if (!(rawSelection instanceof String selection) || selection.isBlank()) {
-                    throw new IllegalStateException("Sélection invalide dans data.yml pour " + rawUuid + ".");
-                }
-                loaded.put(uuid, selection);
-            }
-        }
-        selections = loaded;
-    }
-
-    public String selected(UUID uuid) {
-        return selections.get(uuid);
-    }
-
-    public Map<UUID, String> snapshot() {
         return Map.copyOf(selections);
     }
 
-    public boolean select(UUID uuid, String glowingId) {
-        if (glowingId.equals(selections.get(uuid))) {
-            return true;
-        }
-        Map<UUID, String> replacement = new LinkedHashMap<>(selections);
-        replacement.put(uuid, glowingId);
-        return persistAndReplace(replacement, "Impossible de sauvegarder le glow de " + uuid + ".");
-    }
-
-    public boolean clear(UUID uuid) {
-        if (!selections.containsKey(uuid)) {
-            return true;
-        }
-        Map<UUID, String> replacement = new LinkedHashMap<>(selections);
-        replacement.remove(uuid);
-        return persistAndReplace(replacement, "Impossible de supprimer le glow de " + uuid + ".");
-    }
-
-    /**
-     * Removes an unusable selection from memory even when the disk write fails.
-     */
-    public void invalidate(UUID uuid) {
-        invalidateAll(List.of(uuid));
-    }
-
-    /** Removes a permission-audit batch with at most one atomic write. Server thread only. */
-    public void invalidateAll(Collection<UUID> playerIds) {
-        if (playerIds.isEmpty()) {
-            return;
-        }
-        boolean changed = false;
-        for (UUID playerId : playerIds) {
-            changed |= invalidateWithoutSaving(playerId);
-        }
-        if (!changed) {
-            return;
-        }
-        saveInvalidations();
-    }
-
-    /**
-     * Immediately removes a revoked selection before notifying the player. The audit must
-     * call saveInvalidations() in finally so a burst is written once. Server thread only.
-     */
-    public boolean invalidateWithoutSaving(UUID playerId) {
-        return selections.remove(playerId) != null;
-    }
-
-    /** Writes the latest state, including any later selections; never rolls back revoked choices. */
-    public void saveInvalidations() {
-        try {
-            write(selections);
-        } catch (IOException exception) {
-            plugin.getLogger().log(Level.SEVERE, exception,
-                    () -> "Les sélections invalides n'ont pas pu être retirées de data.yml.");
-        }
-    }
-
-    public boolean replaceAll(Map<UUID, String> replacement) {
-        return persistAndReplace(
-                new LinkedHashMap<>(replacement),
-                "Impossible de mettre à jour les sélections dans data.yml."
-        );
-    }
-
-    /**
-     * Restores runtime consistency after a failed reload, even if the disk rollback cannot complete.
-     */
-    public boolean restoreAfterFailedReload(Map<UUID, String> replacement) {
-        Map<UUID, String> restored = new LinkedHashMap<>(replacement);
-        selections = restored;
-        try {
-            write(restored);
-            return true;
-        } catch (IOException exception) {
-            plugin.getLogger().log(Level.SEVERE,
-                    "Impossible de restaurer les sélections précédentes dans data.yml.", exception);
-            return false;
-        }
-    }
-
-    private boolean persistAndReplace(Map<UUID, String> replacement, String errorMessage) {
-        try {
-            write(replacement);
-            selections = replacement;
-            return true;
-        } catch (IOException exception) {
-            plugin.getLogger().log(Level.SEVERE, errorMessage, exception);
-            return false;
-        }
-    }
-
-    private void write(Map<UUID, String> replacement) throws IOException {
-        Path dataDirectory = dataFile.toPath().getParent();
-        Files.createDirectories(dataDirectory);
-        Path temporaryFile = Files.createTempFile(dataDirectory, "player-glows-", ".yml.tmp");
-        try {
-            YamlConfiguration data = new YamlConfiguration();
-            data.createSection(SELECTIONS_PATH);
-            replacement.forEach((uuid, glowingId) ->
-                    data.set(SELECTIONS_PATH + "." + uuid, glowingId));
-            data.save(temporaryFile.toFile());
-            try {
-                Files.move(
-                        temporaryFile,
-                        dataFile.toPath(),
-                        StandardCopyOption.ATOMIC_MOVE,
-                        StandardCopyOption.REPLACE_EXISTING
-                );
-            } catch (AtomicMoveNotSupportedException exception) {
-                Files.move(temporaryFile, dataFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+    /** Restores only this preference after a failed runtime reload, without forcing a player save. */
+    public void restoreAfterFailedReload(Collection<? extends Player> players, Map<UUID, String> selections) {
+        for (Player player : players) {
+            String selected = selections.get(player.getUniqueId());
+            if (selected == null) {
+                clear(player);
+            } else {
+                select(player, selected);
             }
-        } finally {
-            Files.deleteIfExists(temporaryFile);
         }
     }
 }

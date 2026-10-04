@@ -18,7 +18,6 @@ messages:
   selection-saved: "<green>Votre cosmétique de glow a été équipé et sauvegardé.</green>"
   selection-disabled: "<gray>Votre cosmétique de glow a été désactivé.</gray>"
   selection-invalidated: "<yellow>Votre cosmétique de glow a été retiré car il n'existe plus ou que vous ne possédez plus sa permission.</yellow>"
-  save-failure: "<red>Impossible de sauvegarder votre choix. Consultez la console.</red>"
 
 dialog:
   title: "<gradient:#7CFC00:#A855F7><bold>Cosmétiques de glow</bold></gradient>"
